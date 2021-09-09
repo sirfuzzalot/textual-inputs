@@ -110,15 +110,28 @@ class TextInput(Widget):
             segments = self._render_text_with_cursor()
         else:
             if len(self.value) == 0:
-                segments = [self.placeholder]
+                if self.title and not self.placeholder:
+                    segments = [self.title]
+                else:
+                    segments = [self.placeholder]
             else:
                 segments = [self._conceal_or_reveal(self.value)]
 
         text = Text.assemble(*segments)
 
+        if (
+            self.title
+            and not self.placeholder
+            and len(self.value) == 0
+            and not self.has_focus
+        ):
+            title = ""
+        else:
+            title = self.title
+
         return Panel(
             text,
-            title=self.title,
+            title=title,
             title_align="left",
             height=3,
             style=self.style or "",

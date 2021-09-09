@@ -90,7 +90,6 @@ class Demo(App):
         )
         self.password = TextInput(
             name="password",
-            placeholder="enter your password...",
             title="Password",
             password=True,
         )
