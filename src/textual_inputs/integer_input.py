@@ -118,15 +118,28 @@ class IntegerInput(Widget):
             segments = self._render_text_with_cursor()
         else:
             if len(value) == 0:
-                segments = [self.placeholder]
+                if self.title and not self.placeholder:
+                    segments = [self.title]
+                else:
+                    segments = [self.placeholder]
             else:
                 segments = [value]
 
         text = Text.assemble(*segments)
 
+        if (
+            self.title
+            and not self.placeholder
+            and self.value is None
+            and not self.has_focus
+        ):
+            title = ""
+        else:
+            title = self.title
+
         return Panel(
             text,
-            title=self.title,
+            title=title,
             title_align="left",
             height=3,
             style=self.style or "",
