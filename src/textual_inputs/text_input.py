@@ -1,7 +1,6 @@
 """
 Simple text input
 """
-import string
 from typing import Any, List, Optional, Tuple, Union
 
 import rich.box
