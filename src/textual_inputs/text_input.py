@@ -1,7 +1,6 @@
 """
 Simple text input
 """
-import string
 from typing import Any, List, Optional, Tuple, Union
 
 import rich.box
@@ -240,7 +239,7 @@ class TextInput(Widget):
                     )
             await self._emit_on_change(event)
 
-        elif event.key in string.printable:
+        elif len(event.key) == 1 and event.key.isprintable():
             if self._cursor_position == 0:
                 self.value = event.key + self.value
             elif self._cursor_position == len(self.value):
