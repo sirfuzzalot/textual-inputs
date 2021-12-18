@@ -18,7 +18,7 @@ to change, much like the underlying Textual library.
 - one line of text
 - placeholder and title support
 - password mode to hide input
-- support for ASCII printable characters
+- support for Unicode characters
 - controls: arrow right/left, home, end, delete, backspace/ctrl+h, escape
 - emits - InputOnChange, InputOnFocus messages
 
