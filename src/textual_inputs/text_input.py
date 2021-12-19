@@ -14,6 +14,7 @@ from textual.reactive import Reactive
 from textual.widget import Widget
 
 from textual_inputs.events import InputOnChange, InputOnFocus
+from textual_inputs.styling import Element, InputFieldStyle, InputState
 
 if TYPE_CHECKING:
     from rich.console import RenderableType
@@ -33,6 +34,7 @@ class TextInput(Widget):
             of the widget's border.
         password (bool, optional): Defaults to False. Hides the text
             input, replacing it with bullets.
+        style (InputFieldStyle): InputFieldStyle contains the styling of each element that makes up the input field widget. 
 
     Attributes:
         value (str): the value of the text field
@@ -62,14 +64,6 @@ class TextInput(Widget):
     """
 
     value: Reactive[str] = Reactive("")
-    cursor: Tuple[str, Style] = (
-        "|",
-        Style(
-            color="white",
-            blink=True,
-            bold=True,
-        ),
-    )
     _cursor_position: Reactive[int] = Reactive(0)
     _has_focus: Reactive[bool] = Reactive(False)
 
@@ -81,6 +75,7 @@ class TextInput(Widget):
         placeholder: str = "",
         title: str = "",
         password: bool = False,
+        style: InputFieldStyle,
         **kwargs: Any,
     ) -> None:
         super().__init__(name, **kwargs)
@@ -88,7 +83,15 @@ class TextInput(Widget):
         self.placeholder = placeholder
         self.title = title
         self.has_password = password
+
+        self.input_field_style = style
+
         self._cursor_position = len(self.value)
+
+        self.current_state = InputState.DEFAULT
+        self.last_state = InputState.DEFAULT
+
+        self.cursor_char: str = "|"
 
     def __rich_repr__(self):
         yield "name", self.name
@@ -137,8 +140,8 @@ class TextInput(Widget):
             title=title,
             title_align="left",
             height=3,
-            style=self.style or "",
-            border_style=self.border_style or Style(color="blue"),
+            style=self.input_field_style.get_element_style_for_state(Element.TEXT, self.current_state),
+            border_style=self.input_field_style.get_element_style_for_state(Element.BORDER, self.current_state),
             box=rich.box.DOUBLE if self.has_focus else rich.box.SQUARE,
         )
 
@@ -155,6 +158,12 @@ class TextInput(Widget):
         """
         Produces the renderable Text object combining value and cursor
         """
+
+        self.cursor: Tuple[str, Style] = (
+            self.cursor_char,
+            self.input_field_style.get_element_style_for_state(Element.CURSOR, self.current_state)
+        )
+
         if len(self.value) == 0:
             segments = [self.cursor]
         elif self._cursor_position == 0:
@@ -170,12 +179,20 @@ class TextInput(Widget):
 
         return segments
 
+    async def on_enter(self, event: events.Enter) -> None:
+        self.set_state(InputState.HOVER, transient=True)
+        
+    async def on_leave(self, event: events.Leave) -> None:
+        self.set_state(self.last_state, transient=True)
+
     async def on_focus(self, event: events.Focus) -> None:
         self._has_focus = True
         await self._emit_on_focus()
+        self.set_state(state=InputState.FOCUS)
 
     async def on_blur(self, event: events.Blur) -> None:
         self._has_focus = False
+        self.set_state(state=InputState.DEFAULT)
 
     async def on_key(self, event: events.Key) -> None:
         if event.key == "left":
@@ -266,3 +283,22 @@ class TextInput(Widget):
 
     async def _emit_on_focus(self) -> None:
         await self.emit(InputOnFocus(self))
+
+    def set_state(self, state: InputState, transient: bool = False) -> None:
+        """Sets the current state of the input field.
+
+        States can be set to transient, which means that they will not persist. For example,
+        a transient state of "hover" will not persist if the user clicks on the input field.
+
+        Args:
+            state (InputState): The current state of the input field.
+            transient (bool, optional): Sets the state as transient or not. Defaults to False.
+        """
+
+        self.log(f"State changed to {state}")
+
+        self.current_state = state
+        if not transient:
+            self.last_state = self.current_state
+
+        self.refresh()
