@@ -1,11 +1,12 @@
 """
 Simple integer input
 """
+from __future__ import annotations
+
 import string
-from typing import Any, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any, List, Optional, Tuple, Union
 
 import rich.box
-from rich.console import RenderableType
 from rich.panel import Panel
 from rich.style import Style
 from rich.text import Text
@@ -14,6 +15,9 @@ from textual.reactive import Reactive
 from textual.widget import Widget
 
 from textual_inputs.events import InputOnChange, InputOnFocus
+
+if TYPE_CHECKING:
+    from rich.console import RenderableType
 
 
 class IntegerInput(Widget):

@@ -100,10 +100,7 @@ class Demo(App):
         )
         self.output = Static(
             renderable=Panel(
-                "",
-                title="Report",
-                border_style="blue",
-                box=rich.box.SQUARE
+                "", title="Report", border_style="blue", box=rich.box.SQUARE
             )
         )
 
@@ -130,12 +127,7 @@ password: {"".join("•" for _ in self.password.value)}
      age: {self.age.value}
         """
         await self.output.update(
-            Panel(
-                formatted,
-                title="Report",
-                border_style="blue",
-                box=rich.box.SQUARE
-            )
+            Panel(formatted, title="Report", border_style="blue", box=rich.box.SQUARE)
         )
 
     async def action_reset_focus(self) -> None:
