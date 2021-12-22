@@ -159,21 +159,21 @@ class TextInput(Widget):
         Produces the renderable Text object combining value and cursor
         """
 
-        self.cursor: Tuple[str, Style] = (
+        cursor: Tuple[str, Style] = (
             self.cursor_char,
             self.input_field_style.get_element_style_for_state(Element.CURSOR, self.current_state)
         )
 
         if len(self.value) == 0:
-            segments = [self.cursor]
+            segments = [cursor]
         elif self._cursor_position == 0:
-            segments = [self.cursor, self._conceal_or_reveal(self.value)]
+            segments = [cursor, self._conceal_or_reveal(self.value)]
         elif self._cursor_position == len(self.value):
-            segments = [self._conceal_or_reveal(self.value), self.cursor]
+            segments = [self._conceal_or_reveal(self.value), cursor]
         else:
             segments = [
                 self._conceal_or_reveal(self.value[: self._cursor_position]),
-                self.cursor,
+                cursor,
                 self._conceal_or_reveal(self.value[self._cursor_position :]),
             ]
 
