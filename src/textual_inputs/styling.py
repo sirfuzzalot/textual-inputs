@@ -50,7 +50,7 @@ class BorderElementStyle(ElementStyle):
 
 
 class InputFieldStyle:
-    def __init__(self, cursor: CursorElementStyle, text: TextElementStyle, border: BorderElementStyle):
+    def __init__(self, *, cursor: CursorElementStyle, text: TextElementStyle, border: BorderElementStyle):
 
         self.style_map: dict[Element, ElementStyle] = {
             "cursor": cursor,
