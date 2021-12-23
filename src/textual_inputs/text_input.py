@@ -15,8 +15,20 @@ from textual.widget import Widget
 
 from textual_inputs.events import InputOnChange, InputOnFocus
 
+from rich.console import Console
+from rich.syntax import Syntax
+
 if TYPE_CHECKING:
     from rich.console import RenderableType
+
+CONSOLE = Console()
+
+
+def get_syntax(code, syntax):
+    syntax = Syntax(code, syntax)
+    with CONSOLE.capture() as capture:
+        CONSOLE.print(syntax)
+    return capture.get()
 
 
 class TextInput(Widget):
@@ -39,6 +51,7 @@ class TextInput(Widget):
         placeholder (str): The placeholder message.
         title (str): The displayed title of the widget.
         has_password (bool): True if the text field masks the input.
+        syntax (Optional[str]): the name of the language for syntax highlighting.
         has_focus (bool): True if the widget is focused.
         cursor (Tuple[str, Style]): The character used for the cursor
             and a rich Style object defining its appearance.
@@ -81,6 +94,7 @@ class TextInput(Widget):
         placeholder: str = "",
         title: str = "",
         password: bool = False,
+        syntax: Optional[str] = None,
         **kwargs: Any,
     ) -> None:
         super().__init__(name, **kwargs)
@@ -88,6 +102,7 @@ class TextInput(Widget):
         self.placeholder = placeholder
         self.title = title
         self.has_password = password
+        self.syntax = syntax
         self._cursor_position = len(self.value)
 
     def __rich_repr__(self):
@@ -142,13 +157,15 @@ class TextInput(Widget):
             box=rich.box.DOUBLE if self.has_focus else rich.box.SQUARE,
         )
 
-    def _conceal_or_reveal(self, segment: str) -> str:
+    def _conceal_or_reveal(self, segment: str) -> Union[str, Text]:
         """
-        Produce the segment either concealed like a password or as it
-        was passed.
+        Produce the segment concealed like a password, as it was passed,
+        or syntax highlighted.
         """
         if self.has_password:
-            return "".join("•" for _ in segment)
+            return "•" * len(segment)
+        if self.syntax:
+            return Text.from_ansi(get_syntax(segment, self.syntax))
         return segment
 
     def _render_text_with_cursor(self) -> List[Union[str, Tuple[str, Style]]]:
@@ -157,16 +174,18 @@ class TextInput(Widget):
         """
         if len(self.value) == 0:
             segments = [self.cursor]
-        elif self._cursor_position == 0:
-            segments = [self.cursor, self._conceal_or_reveal(self.value)]
-        elif self._cursor_position == len(self.value):
-            segments = [self._conceal_or_reveal(self.value), self.cursor]
         else:
-            segments = [
-                self._conceal_or_reveal(self.value[: self._cursor_position]),
-                self.cursor,
-                self._conceal_or_reveal(self.value[self._cursor_position :]),
-            ]
+            text = self._conceal_or_reveal(self.value)
+            if self._cursor_position == 0:
+                segments = [self.cursor, text]
+            elif self._cursor_position == len(self.value):
+                segments = [text, self.cursor]
+            else:
+                segments = [
+                    text[: self._cursor_position],
+                    self.cursor,
+                    text[self._cursor_position :],
+                ]
 
         return segments
 
