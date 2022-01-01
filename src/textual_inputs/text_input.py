@@ -6,6 +6,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, List, Optional, Tuple, Union
 
 import rich.box
+from rich.padding import PaddingDimensions
 from rich.panel import Panel
 from rich.style import Style
 from rich.text import Text
@@ -14,6 +15,7 @@ from textual.reactive import Reactive
 from textual.widget import Widget
 
 from textual_inputs.events import InputOnChange, InputOnFocus
+from textual_inputs.styling import Element, FieldStyle, State
 
 if TYPE_CHECKING:
     from rich.console import RenderableType
@@ -33,6 +35,8 @@ class TextInput(Widget):
             of the widget's border.
         password (bool, optional): Defaults to False. Hides the text
             input, replacing it with bullets.
+        style (FieldStyle): FieldStyle contains the styling of each element
+            that makes up the input field widget.
 
     Attributes:
         value (str): the value of the text field
@@ -62,14 +66,6 @@ class TextInput(Widget):
     """
 
     value: Reactive[str] = Reactive("")
-    cursor: Tuple[str, Style] = (
-        "|",
-        Style(
-            color="white",
-            blink=True,
-            bold=True,
-        ),
-    )
     _cursor_position: Reactive[int] = Reactive(0)
     _has_focus: Reactive[bool] = Reactive(False)
 
@@ -81,6 +77,7 @@ class TextInput(Widget):
         placeholder: str = "",
         title: str = "",
         password: bool = False,
+        style: Optional[FieldStyle] = None,
         **kwargs: Any,
     ) -> None:
         super().__init__(name, **kwargs)
@@ -88,7 +85,15 @@ class TextInput(Widget):
         self.placeholder = placeholder
         self.title = title
         self.has_password = password
+
+        self.input_field_style = style or FieldStyle()
+
         self._cursor_position = len(self.value)
+
+        self.current_state = State.DEFAULT
+        self.last_state = State.DEFAULT
+
+        self.cursor_char: str = "|"
 
     def __rich_repr__(self):
         yield "name", self.name
@@ -132,13 +137,25 @@ class TextInput(Widget):
         else:
             title = self.title
 
+        style = self.input_field_style.get_element_style_for_state(
+            element=Element.TEXT, state=self.current_state
+        )
+        border_style = self.input_field_style.get_element_style_for_state(
+            element=Element.BORDER, state=self.current_state
+        )
+
+        dimensions = self.input_field_style.get_dimensions_for_state(
+            state=self.current_state
+        )
+
         return Panel(
             text,
             title=title,
             title_align="left",
-            height=3,
-            style=self.style or "",
-            border_style=self.border_style or Style(color="blue"),
+            height=dimensions[0],
+            width=dimensions[1],
+            style=style,
+            border_style=border_style,
             box=rich.box.DOUBLE if self.has_focus else rich.box.SQUARE,
         )
 
@@ -155,27 +172,43 @@ class TextInput(Widget):
         """
         Produces the renderable Text object combining value and cursor
         """
+
+        cursor: Tuple[str, Style] = (
+            self.cursor_char,
+            self.input_field_style.get_element_style_for_state(
+                Element.CURSOR, self.current_state
+            ),
+        )
+
         if len(self.value) == 0:
-            segments = [self.cursor]
+            segments = [cursor]
         elif self._cursor_position == 0:
-            segments = [self.cursor, self._conceal_or_reveal(self.value)]
+            segments = [cursor, self._conceal_or_reveal(self.value)]
         elif self._cursor_position == len(self.value):
-            segments = [self._conceal_or_reveal(self.value), self.cursor]
+            segments = [self._conceal_or_reveal(self.value), cursor]
         else:
             segments = [
                 self._conceal_or_reveal(self.value[: self._cursor_position]),
-                self.cursor,
+                cursor,
                 self._conceal_or_reveal(self.value[self._cursor_position :]),
             ]
 
         return segments
 
+    async def on_enter(self, event: events.Enter) -> None:
+        self.set_state(State.HOVER, transient=True)
+
+    async def on_leave(self, event: events.Leave) -> None:
+        self.set_state(self.last_state, transient=True)
+
     async def on_focus(self, event: events.Focus) -> None:
         self._has_focus = True
         await self._emit_on_focus()
+        self.set_state(state=State.FOCUS)
 
     async def on_blur(self, event: events.Blur) -> None:
         self._has_focus = False
+        self.set_state(state=State.DEFAULT)
 
     async def on_key(self, event: events.Key) -> None:
         if event.key == "left":
@@ -266,3 +299,24 @@ class TextInput(Widget):
 
     async def _emit_on_focus(self) -> None:
         await self.emit(InputOnFocus(self))
+
+    def set_state(self, state: State, transient: bool = False) -> None:
+        """Sets the current state of the input field.
+
+        States can be set to transient, which means that they will not persist.
+        For example, a transient state of "hover" will not persist if the
+        user clicks on the input field.
+
+        Args:
+            state (InputState): The current state of the input field.
+            transient (bool, optional): Sets the state as transient or not.
+                Defaults to False.
+        """
+
+        self.log(f"State changed to {state}")
+
+        self.current_state = state
+        if not transient:
+            self.last_state = self.current_state
+
+        self.refresh()
