@@ -6,6 +6,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, List, Optional, Tuple, Union
 
 import rich.box
+from rich.padding import PaddingDimensions
 from rich.panel import Panel
 from rich.style import Style
 from rich.text import Text
@@ -143,11 +144,16 @@ class TextInput(Widget):
             element=Element.BORDER, state=self.current_state
         )
 
+        dimensions = self.input_field_style.get_dimensions_for_state(
+            state=self.current_state
+        )
+
         return Panel(
             text,
             title=title,
             title_align="left",
-            height=3,
+            height=dimensions[0],
+            width=dimensions[1],
             style=style,
             border_style=border_style,
             box=rich.box.DOUBLE if self.has_focus else rich.box.SQUARE,

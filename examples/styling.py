@@ -4,7 +4,13 @@ from rich.style import Style
 from textual.app import App
 
 from textual_inputs import TextInput
-from textual_inputs.styling import BorderStyle, CursorStyle, FieldStyle, TextStyle
+from textual_inputs.styling import (
+    BorderStyle,
+    CursorStyle,
+    FieldDimensions,
+    FieldStyle,
+    TextStyle,
+)
 
 
 class InputStyling(App):
@@ -31,6 +37,11 @@ class InputStyling(App):
                     focus=Style(color="medium_purple2", bold=True),
                     hover=Style(color="red"),
                 ),
+                dimensions=FieldDimensions(
+                    default=(3, 100),
+                    focus=(3, 50),
+                    hover=(3, 100),
+                )
             ),
         )
 

@@ -11,6 +11,7 @@ class Element(Enum):
     TEXT = "text"
     BORDER = "border"
 
+
 class State(Enum):
     DEFAULT = "default"
     FOCUS = "focus"
@@ -52,6 +53,25 @@ class BorderStyle(ElementStyle):
     pass
 
 
+FieldDimension = tuple[int, int]
+
+
+class FieldDimensions:
+    def __init__(
+        self,
+        default: FieldDimension,
+        *,
+        focus: Optional[FieldDimension] = None,
+        hover: Optional[FieldDimension] = None,
+    ) -> None:
+
+        self.dimension_map: dict[str, FieldDimension] = {
+            "default": default,
+            "focus": focus or default,
+            "hover": hover or default,
+        }
+
+
 class FieldStyle:
     def __init__(
         self,
@@ -59,6 +79,7 @@ class FieldStyle:
         cursor: CursorStyle | None = None,
         text: TextStyle | None = None,
         border: BorderStyle | None = None,
+        dimensions: FieldDimensions | None = None,
     ) -> None:
 
         default_cursor = CursorStyle(
@@ -71,10 +92,14 @@ class FieldStyle:
             default=Style(color="blue")
         )
 
+        self.dimensions = dimensions or FieldDimensions(
+            default=(3, 100),
+        )
+
         self.style_map: dict[str, ElementStyle] = {
             "cursor": cursor or default_cursor,
             "text": text or default_text,
-            "border": border or default_border,
+            "border": border or default_border
         }
 
     def get_element_style_for_state(
@@ -85,3 +110,15 @@ class FieldStyle:
         style = self.style_map[element.value]
         style_for_state = style.get_style_for_state(state)
         return style_for_state
+
+    def get_dimensions_for_state(self, state: State) -> FieldDimension:
+        """Produces the dimensions for the field in the given state
+
+        Args:
+            state (State): The state to get the dimensions for
+
+        Returns:
+            FieldDimension: The dimensions for the field in the given state
+        """
+
+        return self.dimensions.dimension_map[state.value]
