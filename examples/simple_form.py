@@ -134,10 +134,10 @@ password: {"".join("•" for _ in self.password.value)}
         self.current_index = -1
         await self.header.focus()
 
-    async def message_input_on_change(self, message) -> None:
+    async def handle_input_on_change(self, message) -> None:
         self.log(f"Input: {message.sender.name} changed")
 
-    async def message_input_on_focus(self, message) -> None:
+    async def handle_input_on_focus(self, message) -> None:
         self.current_index = self.tab_index.index(message.sender.name)
 
 
