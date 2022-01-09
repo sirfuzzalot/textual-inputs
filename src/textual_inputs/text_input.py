@@ -81,9 +81,8 @@ class TextInput(Widget):
         placeholder: str = "",
         title: str = "",
         password: bool = False,
-        **kwargs: Any,
     ) -> None:
-        super().__init__(name, **kwargs)
+        super().__init__(name)
         self.value = value
         self.placeholder = placeholder
         self.title = title
