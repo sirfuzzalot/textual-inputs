@@ -79,9 +79,8 @@ class IntegerInput(Widget):
         placeholder: Union[str, int] = "",
         title: str = "",
         step: int = 1,
-        **kwargs: Any
     ) -> None:
-        super().__init__(name, **kwargs)
+        super().__init__(name)
         self.value = value
         self.placeholder = str(placeholder)
         self.title = title
