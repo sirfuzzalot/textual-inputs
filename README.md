@@ -7,10 +7,60 @@
 
 Textual Inputs is a collection of input widgets for the [Textual](https://github.com/willmcgugan/textual) TUI framework.
 
-⚠️ This library is experimental and its interfaces are likely
-to change, much like the underlying Textual library.
+> ⚠️ This library is experimental and its interfaces will change. While
+> Textual Inputs is pre-alpha please pin your projects to the minor release
+> number to avoid breaking changes. For example: textual-inputs=0.2.\*
 
-## Supported Widgets
+---
+
+## News
+
+### v0.2.4
+
+Adds support for customizing the message handler names for on change and
+on focus events emitted by the inputs. Under the hood this will generate
+a `Message` class with the appropriate name for Textual to send it to
+the handler name provided. You'll then want add the handler to the input's
+parent or the App instance. If you opt not to customize these handlers,
+their values will be the default `handle_input_on_change` and `handle_input_on_focus`.
+See `examples/simple_form.py` for a working example.
+
+```python
+email = TextInput(name="email", title="Email")
+email.on_change_handler_name = "handle_email_on_change"
+email.on_focus_handler_name = "handle_email_on_focus"
+```
+
+---
+
+## Quick Start
+
+Installation
+
+```bash
+python -m pip install textual-inputs=0.2.*
+```
+
+To use Textual Inputs
+
+```python
+from textual_inputs import TextInput, IntegerInput
+```
+
+Checkout the [examples](https://github.com/sirfuzzalot/textual-inputs/tree/main/examples) for reference.
+
+```bash
+git clone https://github.com/sirfuzzalot/textual-inputs.git
+cd textual-inputs
+python3 -m venv venv
+source venv/bin/activate
+python -m pip install -e .
+python examples/simple_form.py
+```
+
+---
+
+## Widgets
 
 ### TextInput 🔡
 
@@ -30,25 +80,105 @@ to change, much like the underlying Textual library.
 - controls: arrow right/left, home, end, delete, backspace/ctrl+h, escape
 - emits - InputOnChange, InputOnFocus messages
 
-## Quick Start
+---
 
-```bash
-python -m pip install textual-inputs
-```
+## API Reference
 
-Checkout the [examples](https://github.com/sirfuzzalot/textual-inputs/tree/main/examples) for reference.
-
-```bash
-git clone https://github.com/sirfuzzalot/textual-inputs.git
-cd textual-inputs
-python3 -m venv venv
-source venv/bin/activate
-python -m pip install -r requirements.txt
-python examples/simple_form.py
-```
-
-To use Textual Inputs
+Textual Inputs has two widgets, here are their attributes.
 
 ```python
-from textual_inputs import TextInput, IntegerInput
+class TextInput(Widget):
+    """
+    A simple text input widget.
+
+    Args:
+        name (Optional[str]): The unique name of the widget. If None, the
+            widget will be automatically named.
+        value (str, optional): Defaults to "". The starting text value.
+        placeholder (str, optional): Defaults to "". Text that appears
+            in the widget when value is "" and the widget is not focused.
+        title (str, optional): Defaults to "". A title on the top left
+            of the widget's border.
+        password (bool, optional): Defaults to False. Hides the text
+            input, replacing it with bullets.
+
+    Attributes:
+        value (str): the value of the text field
+        placeholder (str): The placeholder message.
+        title (str): The displayed title of the widget.
+        has_password (bool): True if the text field masks the input.
+        has_focus (bool): True if the widget is focused.
+        cursor (Tuple[str, Style]): The character used for the cursor
+            and a rich Style object defining its appearance.
+        on_change_handler_name (str): name of handler function to be
+            called when an on change event occurs. Defaults to
+            handle_input_on_change.
+        on_focus_handler_name (name): name of handler function to be
+            called when an on focus event occurs. Defaults to
+            handle_input_on_focus.
+
+    Events:
+        InputOnChange: Emitted when the contents of the input changes.
+        InputOnFocus: Emitted when the widget becomes focused.
+
+    Examples:
+
+    .. code-block:: python
+
+        from textual_inputs import TextInput
+
+        email_input = TextInput(
+            name="email",
+            placeholder="enter your email address...",
+            title="Email",
+        )
+
+    """
+```
+
+```python
+class IntegerInput(Widget):
+    """
+    A simple integer input widget.
+
+    Args:
+        name (Optional[str]): The unique name of the widget. If None, the
+            widget will be automatically named.
+        value (Optional[int]): The starting integer value.
+        placeholder (Union[str, int, optional): Defaults to "". Text that
+            appears in the widget when value is "" and the widget is not focused.
+        title (str, optional): Defaults to "". A title on the top left
+            of the widget's border.
+
+    Attributes:
+        value (Union[int, None]): the value of the input field
+        placeholder (str): The placeholder message.
+        title (str): The displayed title of the widget.
+        has_focus (bool): True if the widget is focused.
+        cursor (Tuple[str, Style]): The character used for the cursor
+            and a rich Style object defining its appearance.
+        on_change_handler_name (str): name of handler function to be
+            called when an on change event occurs. Defaults to
+            handle_input_on_change.
+        on_focus_handler_name (name): name of handler function to be
+            called when an on focus event occurs. Defaults to
+            handle_input_on_focus.
+
+    Events:
+        InputOnChange: Emitted when the contents of the input changes.
+        InputOnFocus: Emitted when the widget becomes focused.
+
+    Examples:
+
+    .. code-block:: python
+
+        from textual_inputs import IntegerInput
+
+        age_input = IntegerInput(
+            name="age",
+            placeholder="enter your age...",
+            title="Age",
+        )
+
+    """
 ```
