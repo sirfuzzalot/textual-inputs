@@ -75,7 +75,7 @@ class SimpleForm(App):
 
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
-        self.tab_index = ["username", "password", "age"]
+        self.tab_index = ["username", "password", "age", "code"]
 
     async def on_load(self) -> None:
         await self.bind("q", "quit", "Quit")
@@ -109,6 +109,14 @@ class SimpleForm(App):
             title="Age",
         )
         self.age.on_change_handler_name = "handle_age_on_change"
+        
+        self.code = TextInput(
+            name="code",
+            placeholder="enter some python code...",
+            title="Code",
+            syntax="python",
+        )
+        self.code.on_change_handler_name = "handle_code_on_change"
 
         self.output = Static(
             renderable=Panel(
@@ -116,7 +124,7 @@ class SimpleForm(App):
             )
         )
         await self.view.dock(self.output, edge="left", size=40)
-        await self.view.dock(self.username, self.password, self.age, edge="top")
+        await self.view.dock(self.username, self.password, self.age, self.code, edge="top")
 
     async def action_next_tab_index(self) -> None:
         """Changes the focus to the next form field"""
@@ -136,6 +144,7 @@ class SimpleForm(App):
 username: {self.username.value}
 password: {"".join("•" for _ in self.password.value)}
      age: {self.age.value}
+    code: {self.code.value}
         """
         await self.output.update(
             Panel(formatted, title="Report", border_style="blue", box=rich.box.SQUARE)

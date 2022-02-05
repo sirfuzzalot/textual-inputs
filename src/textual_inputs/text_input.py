@@ -15,8 +15,26 @@ from textual.widget import Widget
 
 from textual_inputs.events import InputOnChange, InputOnFocus, make_message_class
 
+from rich.console import Console
+from rich.syntax import Syntax
+
 if TYPE_CHECKING:
     from rich.console import RenderableType
+
+CONSOLE = Console()
+
+
+def conceal_text(segment: str) -> str:
+    """Produce the segment concealed like a password."""
+    return "•" * len(segment)
+
+
+def syntax_highlight_text(code: str, syntax: str) -> Text:
+    """Produces highlighted text based on the syntax."""
+    syntax_obj = Syntax(code, syntax)
+    with CONSOLE.capture() as capture:
+        CONSOLE.print(syntax_obj)
+    return Text.from_ansi(capture.get())
 
 
 class TextInput(Widget):
@@ -33,12 +51,14 @@ class TextInput(Widget):
             of the widget's border.
         password (bool, optional): Defaults to False. Hides the text
             input, replacing it with bullets.
+        syntax (Optional[str]): the name of the language for syntax highlighting.
 
     Attributes:
         value (str): the value of the text field
         placeholder (str): The placeholder message.
         title (str): The displayed title of the widget.
         has_password (bool): True if the text field masks the input.
+        syntax (Optional[str]): the name of the language for syntax highlighting.
         has_focus (bool): True if the widget is focused.
         cursor (Tuple[str, Style]): The character used for the cursor
             and a rich Style object defining its appearance.
@@ -87,12 +107,15 @@ class TextInput(Widget):
         placeholder: str = "",
         title: str = "",
         password: bool = False,
+        syntax: Optional[str] = None,
+        **kwargs: Any,
     ) -> None:
         super().__init__(name)
         self.value = value
         self.placeholder = placeholder
         self.title = title
         self.has_password = password
+        self.syntax = syntax
         self._on_change_message_class = InputOnChange
         self._on_focus_message_class = InputOnFocus
         self._cursor_position = len(self.value)
@@ -153,7 +176,7 @@ class TextInput(Widget):
                 else:
                     segments = [self.placeholder]
             else:
-                segments = [self._conceal_or_reveal(self.value)]
+                segments = [self._modify_text(self.value)]
 
         text = Text.assemble(*segments)
 
@@ -177,33 +200,26 @@ class TextInput(Widget):
             box=rich.box.DOUBLE if self.has_focus else rich.box.SQUARE,
         )
 
-    def _conceal_or_reveal(self, segment: str) -> str:
+    def _modify_text(self, segment: str) -> Union[str, Text]:
         """
-        Produce the segment either concealed like a password or as it
-        was passed.
+        Produces the text with modifications, such as password concealing.
         """
         if self.has_password:
-            return "".join("•" for _ in segment)
+            return conceal_text(segment)
+        if self.syntax:
+            return syntax_highlight_text(segment, self.syntax)
         return segment
 
-    def _render_text_with_cursor(self) -> List[Union[str, Tuple[str, Style]]]:
+    def _render_text_with_cursor(self) -> List[Union[str, Text, Tuple[str, Style]]]:
         """
         Produces the renderable Text object combining value and cursor
         """
-        if len(self.value) == 0:
-            segments = [self.cursor]
-        elif self._cursor_position == 0:
-            segments = [self.cursor, self._conceal_or_reveal(self.value)]
-        elif self._cursor_position == len(self.value):
-            segments = [self._conceal_or_reveal(self.value), self.cursor]
-        else:
-            segments = [
-                self._conceal_or_reveal(self.value[: self._cursor_position]),
-                self.cursor,
-                self._conceal_or_reveal(self.value[self._cursor_position :]),
-            ]
-
-        return segments
+        text = self._modify_text(self.value)
+        return [
+            text[: self._cursor_position],
+            self.cursor,
+            text[self._cursor_position :],
+        ]
 
     async def on_focus(self, event: events.Focus) -> None:
         self._has_focus = True
