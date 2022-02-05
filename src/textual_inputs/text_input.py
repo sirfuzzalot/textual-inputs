@@ -24,12 +24,17 @@ if TYPE_CHECKING:
 CONSOLE = Console()
 
 
-def get_syntax(code: str, syntax: str) -> str:
-    """Produces highlighted text based on the syntax"""
+def conceal_text(segment: str) -> str:
+    """Produce the segment concealed like a password."""
+    return "•" * len(segment)
+
+
+def syntax_highlight_text(code: str, syntax: str) -> Text:
+    """Produces highlighted text based on the syntax."""
     syntax_obj = Syntax(code, syntax)
     with CONSOLE.capture() as capture:
         CONSOLE.print(syntax_obj)
-    return capture.get()
+    return Text.from_ansi(capture.get())
 
 
 class TextInput(Widget):
@@ -171,7 +176,7 @@ class TextInput(Widget):
                 else:
                     segments = [self.placeholder]
             else:
-                segments = [self._conceal_or_reveal(self.value)]
+                segments = [self._modify_text(self.value)]
 
         text = Text.assemble(*segments)
 
@@ -195,37 +200,26 @@ class TextInput(Widget):
             box=rich.box.DOUBLE if self.has_focus else rich.box.SQUARE,
         )
 
-    def _conceal_or_reveal(self, segment: str) -> Union[str, Text]:
+    def _modify_text(self, segment: str) -> Union[str, Text]:
         """
-        Produce the segment concealed like a password, as it was passed,
-        or syntax highlighted.
+        Produces the text with modifications, such as password concealing.
         """
         if self.has_password:
-            return "•" * len(segment)
+            return conceal_text(segment)
         if self.syntax:
-            return Text.from_ansi(get_syntax(segment, self.syntax))
+            return syntax_highlight_text(segment, self.syntax)
         return segment
 
-    def _render_text_with_cursor(self) -> List[Union[str, Tuple[str, Style]]]:
+    def _render_text_with_cursor(self) -> List[Union[str, Text, Tuple[str, Style]]]:
         """
         Produces the renderable Text object combining value and cursor
         """
-        if len(self.value) == 0:
-            segments = [self.cursor]
-        else:
-            text = self._conceal_or_reveal(self.value)
-            if self._cursor_position == 0:
-                segments = [self.cursor, text]
-            elif self._cursor_position == len(self.value):
-                segments = [text, self.cursor]
-            else:
-                segments = [
-                    text[: self._cursor_position],
-                    self.cursor,
-                    text[self._cursor_position :],
-                ]
-
-        return segments
+        text = self._modify_text(self.value)
+        return [
+            text[: self._cursor_position],
+            self.cursor,
+            text[self._cursor_position :],
+        ]
 
     async def on_focus(self, event: events.Focus) -> None:
         self._has_focus = True
