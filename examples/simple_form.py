@@ -1,4 +1,8 @@
 # app.py
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 import rich.box
 from rich.panel import Panel
 from rich.style import Style
@@ -11,6 +15,9 @@ from textual.widgets import Footer, Header, Static
 
 from textual_inputs import IntegerInput, TextInput
 
+if TYPE_CHECKING:
+    from textual.message import Message
+
 
 class CustomHeader(Header):
     """Override the default Header for Styling"""
@@ -18,10 +25,10 @@ class CustomHeader(Header):
     def __init__(self) -> None:
         super().__init__()
         self.tall = False
+        self.style = Style(color="white", bgcolor="rgb(98,98,98)")
 
     def render(self) -> Table:
         header_table = Table.grid(padding=(0, 1), expand=True)
-        header_table.style = Style(color="white", bgcolor="rgb(98,98,98)")
         header_table.add_column(justify="left", ratio=0, width=8)
         header_table.add_column("title", justify="center", ratio=1)
         header_table.add_column("clock", justify="right", width=8)
@@ -62,13 +69,13 @@ class CustomFooter(Footer):
         return text
 
 
-class Demo(App):
+class SimpleForm(App):
 
     current_index: Reactive[int] = Reactive(-1)
 
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
-        self.tab_index = ["username", "password", "age"]
+        self.tab_index = ["username", "password", "age", "code"]
 
     async def on_load(self) -> None:
         await self.bind("q", "quit", "Quit")
@@ -88,28 +95,34 @@ class Demo(App):
             placeholder="enter your username...",
             title="Username",
         )
+        self.username.on_change_handler_name = "handle_username_on_change"
+
         self.password = TextInput(
             name="password",
             title="Password",
             password=True,
         )
+
         self.age = IntegerInput(
             name="age",
             placeholder="enter your age...",
             title="Age",
         )
+        self.age.on_change_handler_name = "handle_age_on_change"
+        
         self.code = TextInput(
             name="code",
             placeholder="enter some python code...",
             title="Code",
             syntax="python",
         )
+        self.code.on_change_handler_name = "handle_code_on_change"
+
         self.output = Static(
             renderable=Panel(
                 "", title="Report", border_style="blue", box=rich.box.SQUARE
             )
         )
-
         await self.view.dock(self.output, edge="left", size=40)
         await self.view.dock(self.username, self.password, self.age, self.code, edge="top")
 
@@ -141,12 +154,15 @@ password: {"".join("•" for _ in self.password.value)}
         self.current_index = -1
         await self.header.focus()
 
-    async def message_input_on_change(self, message) -> None:
-        self.log(f"Input: {message.sender.name} changed")
+    async def handle_username_on_change(self, message: Message) -> None:
+        self.log(f"Username Field Contains: {message.sender.value}")
 
-    async def message_input_on_focus(self, message) -> None:
+    async def handle_age_on_change(self, message: Message) -> None:
+        self.log(f"Age Field Contains: {message.sender.value}")
+
+    async def handle_input_on_focus(self, message: Message) -> None:
         self.current_index = self.tab_index.index(message.sender.name)
 
 
 if __name__ == "__main__":
-    Demo.run(title="Textual-Inputs Demo", log="textual.log")
+    SimpleForm.run(title="Textual-Inputs Demo", log="textual.log")

@@ -3,7 +3,7 @@ Simple text input
 """
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, List, Optional, Tuple, Union
 
 import rich.box
 from rich.panel import Panel
@@ -13,7 +13,7 @@ from textual import events
 from textual.reactive import Reactive
 from textual.widget import Widget
 
-from textual_inputs.events import InputOnChange, InputOnFocus
+from textual_inputs.events import InputOnChange, InputOnFocus, make_message_class
 
 from rich.console import Console
 from rich.syntax import Syntax
@@ -24,10 +24,11 @@ if TYPE_CHECKING:
 CONSOLE = Console()
 
 
-def get_syntax(code, syntax):
-    syntax = Syntax(code, syntax)
+def get_syntax(code: str, syntax: str) -> str:
+    """Produces highlighted text based on the syntax"""
+    syntax_obj = Syntax(code, syntax)
     with CONSOLE.capture() as capture:
-        CONSOLE.print(syntax)
+        CONSOLE.print(syntax_obj)
     return capture.get()
 
 
@@ -45,6 +46,7 @@ class TextInput(Widget):
             of the widget's border.
         password (bool, optional): Defaults to False. Hides the text
             input, replacing it with bullets.
+        syntax (Optional[str]): the name of the language for syntax highlighting.
 
     Attributes:
         value (str): the value of the text field
@@ -55,8 +57,14 @@ class TextInput(Widget):
         has_focus (bool): True if the widget is focused.
         cursor (Tuple[str, Style]): The character used for the cursor
             and a rich Style object defining its appearance.
+        on_change_handler_name (str): name of handler function to be
+            called when an on change event occurs. Defaults to
+            handle_input_on_change.
+        on_focus_handler_name (name): name of handler function to be
+            called when an on focus event occurs. Defaults to
+            handle_input_on_focus.
 
-    Messages:
+    Events:
         InputOnChange: Emitted when the contents of the input changes.
         InputOnFocus: Emitted when the widget becomes focused.
 
@@ -97,12 +105,14 @@ class TextInput(Widget):
         syntax: Optional[str] = None,
         **kwargs: Any,
     ) -> None:
-        super().__init__(name, **kwargs)
+        super().__init__(name)
         self.value = value
         self.placeholder = placeholder
         self.title = title
         self.has_password = password
         self.syntax = syntax
+        self._on_change_message_class = InputOnChange
+        self._on_focus_message_class = InputOnFocus
         self._cursor_position = len(self.value)
 
     def __rich_repr__(self):
@@ -113,11 +123,39 @@ class TextInput(Widget):
         else:
             value = self.value
         yield "value", value
+        yield "on_change_handler_name", self.on_change_handler_name
+        yield "on_focus_handler_name", self.on_focus_handler_name
 
     @property
     def has_focus(self) -> bool:
         """Produces True if widget is focused"""
         return self._has_focus
+
+    @property
+    def on_change_handler_name(self) -> str:
+        return self._on_change_message_class._handler
+
+    @on_change_handler_name.setter
+    def on_change_handler_name(self, handler_name: str) -> None:
+        """
+        Name of the handler function for an on change event to be sent to.
+        Must start with "handle_" and contain only lowercase ASCII letters,
+        numbers and underscores.
+        """
+        self._on_change_message_class = make_message_class(handler_name)
+
+    @property
+    def on_focus_handler_name(self) -> str:
+        return self._on_focus_message_class._handler
+
+    @on_focus_handler_name.setter
+    def on_focus_handler_name(self, handler_name: str) -> None:
+        """
+        Name of the handler function for an on focus event to be sent to.
+        Must start with "handle_" and contain only lowercase ASCII letters,
+        numbers and underscores.
+        """
+        self._on_focus_message_class = make_message_class(handler_name)
 
     def render(self) -> RenderableType:
         """
@@ -281,7 +319,7 @@ class TextInput(Widget):
 
     async def _emit_on_change(self, event: events.Key) -> None:
         event.stop()
-        await self.emit(InputOnChange(self))
+        await self.emit(self._on_change_message_class(self))
 
     async def _emit_on_focus(self) -> None:
-        await self.emit(InputOnFocus(self))
+        await self.emit(self._on_focus_message_class(self))
