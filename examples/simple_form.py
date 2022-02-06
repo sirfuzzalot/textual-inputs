@@ -109,14 +109,13 @@ class SimpleForm(App):
             title="Age",
         )
         self.age.on_change_handler_name = "handle_age_on_change"
-        
+
         self.code = TextInput(
             name="code",
             placeholder="enter some python code...",
             title="Code",
             syntax="python",
         )
-        self.code.on_change_handler_name = "handle_code_on_change"
 
         self.output = Static(
             renderable=Panel(
@@ -124,7 +123,9 @@ class SimpleForm(App):
             )
         )
         await self.view.dock(self.output, edge="left", size=40)
-        await self.view.dock(self.username, self.password, self.age, self.code, edge="top")
+        await self.view.dock(
+            self.username, self.password, self.age, self.code, edge="top"
+        )
 
     async def action_next_tab_index(self) -> None:
         """Changes the focus to the next form field"""
@@ -134,7 +135,6 @@ class SimpleForm(App):
 
     async def action_previous_tab_index(self) -> None:
         """Changes the focus to the previous form field"""
-        self.log(f"PREVIOUS {self.current_index}")
         if self.current_index > 0:
             self.current_index -= 1
             await getattr(self, self.tab_index[self.current_index]).focus()
@@ -165,4 +165,4 @@ password: {"".join("•" for _ in self.password.value)}
 
 
 if __name__ == "__main__":
-    SimpleForm.run(title="Textual-Inputs Demo", log="textual.log")
+    SimpleForm.run(title="Textual-Inputs Simple Form", log="textual.log")
