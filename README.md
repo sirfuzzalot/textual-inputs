@@ -11,27 +11,22 @@ Textual Inputs is a collection of input widgets for the [Textual](https://github
 > Textual Inputs is pre-alpha please pin your projects to the minor release
 > number to avoid breaking changes. For example: textual-inputs=0.2.\*
 
----
-
 ## News
 
-### v0.2.4
+### v0.2.5
 
-Adds support for customizing the message handler names for on change and
-on focus events emitted by the inputs. Under the hood this will generate
-a `Message` class with the appropriate name for Textual to send it to
-the handler name provided. You'll then want add the handler to the input's
-parent or the App instance. If you opt not to customize these handlers,
-their values will be the default `handle_input_on_change` and `handle_input_on_focus`.
-See `examples/simple_form.py` for a working example.
+Adds support for syntax highlighting. To add syntax highlighting to your
+input text set the `syntax` argument to a language supported by
+`pygments`. Currently this is set to the default theme.
 
 ```python
-email = TextInput(name="email", title="Email")
-email.on_change_handler_name = "handle_email_on_change"
-email.on_focus_handler_name = "handle_email_on_focus"
+TextInput(
+    name="code",
+    placeholder="enter some python code...",
+    title="Code",
+    syntax="python",
+)
 ```
-
----
 
 ## Quick Start
 
@@ -58,8 +53,6 @@ python -m pip install -e .
 python examples/simple_form.py
 ```
 
----
-
 ## Widgets
 
 ### TextInput 🔡
@@ -68,6 +61,7 @@ python examples/simple_form.py
 - one line of text
 - placeholder and title support
 - password mode to hide input
+- syntax mode to highlight code
 - support for Unicode characters
 - controls: arrow right/left, home, end, delete, backspace/ctrl+h, escape
 - emits - InputOnChange, InputOnFocus messages
@@ -80,7 +74,45 @@ python examples/simple_form.py
 - controls: arrow right/left, home, end, delete, backspace/ctrl+h, escape
 - emits - InputOnChange, InputOnFocus messages
 
----
+## Features
+
+### One-Line Syntax Highlighting
+
+Textual Inputs takes advantage of `rich`'s built-in Syntax feature. To
+add highlighting to your input text set the `syntax` argument to a language
+supported by `pygments`. Currently this is set to the default theme.
+
+**⚠️ THIS FEATURE IS LIMITED TO ONE LINE OF TEXT**
+
+```python
+TextInput(
+    name="code",
+    placeholder="enter some python code...",
+    title="Code",
+    syntax="python",
+)
+```
+
+### Event Handlers
+
+Textual Inputs helps make the event handler process easier by providing
+the following convenient properties for inputs.
+
+- on_change_handler_name
+- on_focus_handler_name
+
+```python
+email = TextInput(name="email", title="Email")
+email.on_change_handler_name = "handle_email_on_change"
+email.on_focus_handler_name = "handle_email_on_focus"
+```
+
+Under the hood setting this attribute this will generate a `Message` class
+with the appropriate name for Textual to send it to the handler name provided.
+You'll then want add the handler to the input's parent or the App instance.
+If you opt not to customize these handlers, their values will be the
+default `handle_input_on_change` and `handle_input_on_focus`. See
+`examples/simple_form.py` for a working example.
 
 ## API Reference
 
@@ -101,12 +133,14 @@ class TextInput(Widget):
             of the widget's border.
         password (bool, optional): Defaults to False. Hides the text
             input, replacing it with bullets.
+        syntax (Optional[str]): the name of the language for syntax highlighting.
 
     Attributes:
         value (str): the value of the text field
         placeholder (str): The placeholder message.
         title (str): The displayed title of the widget.
         has_password (bool): True if the text field masks the input.
+        syntax (Optional[str]): the name of the language for syntax highlighting.
         has_focus (bool): True if the widget is focused.
         cursor (Tuple[str, Style]): The character used for the cursor
             and a rich Style object defining its appearance.
