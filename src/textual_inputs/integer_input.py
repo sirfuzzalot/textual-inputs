@@ -277,7 +277,8 @@ class IntegerInput(Widget):
 
         elif event.key == "delete":
             if self._cursor_position == len(value):
-                return
+                self.value = ""
+                self._cursor_position = 0
             elif len(value) == 1:
                 self.value = None
             elif len(value) == 2:
