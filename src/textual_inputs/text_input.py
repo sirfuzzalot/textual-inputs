@@ -276,7 +276,8 @@ class TextInput(Widget):
 
         elif event.key == "delete":
             if self._cursor_position == len(self.value):
-                return
+                self.value = ""
+                self._cursor_position = 0
             elif len(self.value) == 1:
                 self.value = ""
             elif len(self.value) == 2:
