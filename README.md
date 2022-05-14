@@ -33,7 +33,7 @@ TextInput(
 Installation
 
 ```bash
-python -m pip install textual-inputs=0.2.*
+python -m pip install textual-inputs~=0.2.5
 ```
 
 To use Textual Inputs
@@ -216,3 +216,7 @@ class IntegerInput(Widget):
 
     """
 ```
+
+## Contributing
+
+See the [Contributing Guide](https://github.com/sirfuzzalot/textual-inputs/blob/main/CONTRIBUTING.md).
