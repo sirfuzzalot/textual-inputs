@@ -195,6 +195,7 @@ class IntegerInput(Widget):
                 and cursor.
         """
         value = self._value_as_str
+        segments: List[Union[str, Tuple[str, Style]]]
 
         if len(value) == 0:
             segments = [self.cursor]

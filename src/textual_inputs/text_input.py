@@ -3,20 +3,19 @@ Simple text input
 """
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any, List, Optional, Tuple, Union
 
 import rich.box
+from rich.console import Console
 from rich.panel import Panel
 from rich.style import Style
+from rich.syntax import Syntax
 from rich.text import Text
 from textual import events
 from textual.reactive import Reactive
 from textual.widget import Widget
 
 from textual_inputs.events import InputOnChange, InputOnFocus, make_message_class
-
-from rich.console import Console
-from rich.syntax import Syntax
 
 if TYPE_CHECKING:
     from rich.console import RenderableType
