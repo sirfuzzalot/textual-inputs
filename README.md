@@ -33,7 +33,7 @@ TextInput(
 Installation
 
 ```bash
-python -m pip install textual-inputs~=0.2
+python -m pip install textual-inputs~=0.2.5
 ```
 
 To use Textual Inputs
