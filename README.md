@@ -58,7 +58,7 @@ python examples/simple_form.py
 ### TextInput 🔡
 
 - value - string
-- one line of text
+- one line of text with overflow support
 - placeholder and title support
 - password mode to hide input
 - syntax mode to highlight code
