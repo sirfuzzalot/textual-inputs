@@ -118,6 +118,7 @@ class TextInput(Widget):
         self._on_change_message_class = InputOnChange
         self._on_focus_message_class = InputOnFocus
         self._cursor_position = len(self.value)
+        self._text_offset = 0
 
     def __rich_repr__(self):
         yield "name", self.name
@@ -209,15 +210,37 @@ class TextInput(Widget):
             return syntax_highlight_text(segment, self.syntax)
         return segment
 
+    @property
+    def _visible_width(self):
+        width, _ = self.size
+        # remove 2, 1 for each of the border's edges
+        # remove 1 more for the cursor
+        # remove 2 for the padding either side of the input
+        if self.border:
+            width -= 2
+        if self._has_focus:
+            width -= 1
+        width -= 2
+        return width
+
+    def _text_offset_window(self):
+        return self._text_offset, self._text_offset + self._visible_width
+
     def _render_text_with_cursor(self) -> List[Union[str, Text, Tuple[str, Style]]]:
         """
         Produces the renderable Text object combining value and cursor
         """
         text = self._modify_text(self.value)
+
+        # trim the string to fit within the widgets dimensions
+        # we then need to convert the cursor to be relative to this view
+        left, right = self._text_offset_window()
+        text = text[left:right]
+        cursor_relative_position = self._cursor_position - self._text_offset
         return [
-            text[: self._cursor_position],
+            text[: cursor_relative_position],
             self.cursor,
-            text[self._cursor_position :],
+            text[cursor_relative_position :],
         ]
 
     async def on_focus(self, event: events.Focus) -> None:
@@ -227,87 +250,84 @@ class TextInput(Widget):
     async def on_blur(self, event: events.Blur) -> None:
         self._has_focus = False
 
+    def _update_offset_left(self):
+        # ensure the cursor always has at least N character to the left
+        visibility_left = 3
+        if self._cursor_position < self._text_offset + visibility_left:
+            # move the text offset to permit the cursor at the end
+            self._text_offset = max(0, self._cursor_position - visibility_left)
+
+    def _update_offset_right(self):
+        _, right = self._text_offset_window()
+        # if we're at the edge of the widget
+        # shuffle our text across
+        if self._cursor_position > right:
+            # move the text offset to permit the cursor at the end
+            self._text_offset = self._cursor_position - self._visible_width
+
+    def cursor_left(self):
+        if self._cursor_position > 0:
+            self._cursor_position -= 1
+            self._update_offset_left()
+
+    def cursor_right(self):
+        if self._cursor_position < len(self.value):
+            self._cursor_position = self._cursor_position + 1
+            self._update_offset_right()
+
+    def cursor_home(self):
+        self._cursor_position = 0
+        self._update_offset_left()
+
+    def cursor_end(self):
+        self._cursor_position = len(self.value)
+        self._update_offset_right()
+
+    def key_backspace(self):
+        if self._cursor_position > 0:
+            self.value = (
+                self.value[: self._cursor_position - 1]
+                + self.value[self._cursor_position :]
+            )
+            self._cursor_position -= 1
+            self._update_offset_left()
+
+    def key_delete(self):
+        if self._cursor_position < len(self.value):
+            self.value = (
+                self.value[: self._cursor_position]
+                + self.value[self._cursor_position + 1 :]
+            )
+
+    def key_printable(self, event):
+        self.value = (
+            self.value[: self._cursor_position]
+            + event.key
+            + self.value[self._cursor_position :]
+        )
+
+        if not self._cursor_position > len(self.value):
+            self._cursor_position += 1
+            self._update_offset_right()
+
     async def on_key(self, event: events.Key) -> None:
+        BACKSPACE = "ctrl+h"
         if event.key == "left":
-            if self._cursor_position == 0:
-                self._cursor_position = 0
-            else:
-                self._cursor_position -= 1
-
+            self.cursor_left()
         elif event.key == "right":
-            if self._cursor_position != len(self.value):
-                self._cursor_position = self._cursor_position + 1
-
+            self.cursor_right()
         elif event.key == "home":
-            self._cursor_position = 0
-
+            self.cursor_home()
         elif event.key == "end":
-            self._cursor_position = len(self.value)
-
-        elif event.key == "ctrl+h":  # Backspace
-            if self._cursor_position == 0:
-                return
-            elif len(self.value) == 1:
-                self.value = ""
-                self._cursor_position = 0
-            elif len(self.value) == 2:
-                if self._cursor_position == 1:
-                    self.value = self.value[1]
-                    self._cursor_position = 0
-                else:
-                    self.value = self.value[0]
-                    self._cursor_position = 1
-            else:
-                if self._cursor_position == 1:
-                    self.value = self.value[1:]
-                    self._cursor_position = 0
-                elif self._cursor_position == len(self.value):
-                    self.value = self.value[:-1]
-                    self._cursor_position -= 1
-                else:
-                    self.value = (
-                        self.value[: self._cursor_position - 1]
-                        + self.value[self._cursor_position :]
-                    )
-                    self._cursor_position -= 1
-
+            self.cursor_end()
+        elif event.key == BACKSPACE:
+            self.key_backspace()
             await self._emit_on_change(event)
-
         elif event.key == "delete":
-            if self._cursor_position == len(self.value):
-                return
-            elif len(self.value) == 1:
-                self.value = ""
-            elif len(self.value) == 2:
-                if self._cursor_position == 1:
-                    self.value = self.value[0]
-                else:
-                    self.value = self.value[1]
-            else:
-                if self._cursor_position == 0:
-                    self.value = self.value[1:]
-                else:
-                    self.value = (
-                        self.value[: self._cursor_position]
-                        + self.value[self._cursor_position + 1 :]
-                    )
+            self.key_delete()
             await self._emit_on_change(event)
-
         elif len(event.key) == 1 and event.key.isprintable():
-            if self._cursor_position == 0:
-                self.value = event.key + self.value
-            elif self._cursor_position == len(self.value):
-                self.value = self.value + event.key
-            else:
-                self.value = (
-                    self.value[: self._cursor_position]
-                    + event.key
-                    + self.value[self._cursor_position :]
-                )
-
-            if not self._cursor_position > len(self.value):
-                self._cursor_position += 1
-
+            self.key_printable(event)
             await self._emit_on_change(event)
 
     async def _emit_on_change(self, event: events.Key) -> None:
