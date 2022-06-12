@@ -13,27 +13,17 @@ Textual Inputs is a collection of input widgets for the [Textual](https://github
 
 ## News
 
-### v0.2.5
+### v0.2.6
 
-Adds support for syntax highlighting. To add syntax highlighting to your
-input text set the `syntax` argument to a language supported by
-`pygments`. Currently this is set to the default theme.
-
-```python
-TextInput(
-    name="code",
-    placeholder="enter some python code...",
-    title="Code",
-    syntax="python",
-)
-```
+- Support for text overflow in TextInput
+- Patch for crash when IntegerInput is empty and backspace is pressed.
 
 ## Quick Start
 
 Installation
 
 ```bash
-python -m pip install textual-inputs~=0.2.5
+python -m pip install textual-inputs~=0.2.6
 ```
 
 To use Textual Inputs

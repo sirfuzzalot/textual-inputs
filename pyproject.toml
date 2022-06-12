@@ -1,14 +1,51 @@
+[project]
+name = "textual-inputs"
+license = { text = "MIT" }
+description = "textual-inputs is a collection of input widgets for the Textual TUI framework"
+readme = "README.md"
+keywords = ["tui", "terminal", "widget"]
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "License :: OSI Approved :: MIT License",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Operating System :: MacOS",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10"
+]
+requires-python = ">=3.7"
+dependencies = ["textual >= 0.1.18,< 0.2"]
+dynamic = ["version"]
+
+[[project.authors]]
+author = "Tom Saunders"
+email = "57846408+sirfuzzalot@users.noreply.github.com"
+
+[project.urls]
+Source = "https://github.com/sirfuzzalot/textual-inputs"
+Documentation = "https://github.com/sirfuzzalot/textual-inputs"
+Tracker = "https://github.com/sirfuzzalot/textual-inputs/issues"
+
 [build-system]
 requires = [
-    "setuptools>=42",
+    "setuptools>=61",
     "wheel"
 ]
 build-backend = "setuptools.build_meta"
 
+[tool.setuptools.dynamic]
+version = { attr = "textual_inputs.__version__" }
+
 [tool.black]
-exclude = 'venv'
+exclude = 'venv*'
 
 [tool.isort]
 profile = "black"
 multi_line_output = 3
-skip = ["venv"]
+skip = ["venv*"]
