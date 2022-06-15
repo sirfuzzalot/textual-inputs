@@ -126,7 +126,12 @@ class TextInput(Widget):
         self._on_change_message_class = InputOnChange
         self._on_focus_message_class = InputOnFocus
         self._cursor_position = len(self.value)
-        self._text_offset = 0
+        """The offset of the string within the input.
+        This represents the start index of the visible string segment."""
+        self._view_offset = 0
+        """The number of characters to try to keep visible at the edges when
+        moving the cursor left or right."""
+        self.edge_visibility = 3
 
     def __rich_repr__(self):
         yield "name", self.name
@@ -170,22 +175,37 @@ class TextInput(Widget):
         """
         self._on_focus_message_class = make_message_class(handler_name)
 
+    async def on_focus(self, event: events.Focus) -> None:
+        """Handle Focus events
+
+        Args:
+            event (events.Focus): A Textual Focus event
+        """
+        self._has_focus = True
+        await self._emit_on_focus()
+
+    async def on_blur(self, event: events.Blur) -> None:
+        """Handle Blur events
+
+        Args:
+            event (events.Blur): A Textual Blur event
+        """
+        self._has_focus = False
+
+    def _modify_text(self, segment: str) -> Union[str, Text]:
+        """Produces the text with modifications, such as password concealing."""
+        if self.has_password:
+            return conceal_text(segment)
+        if self.syntax:
+            return syntax_highlight_text(segment, self.syntax)
+        return segment
+
     def render(self) -> RenderableType:
         """
         Produce a Panel object containing placeholder text or value
         and cursor.
         """
-        if self.has_focus:
-            segments = self._render_text_with_cursor()
-        else:
-            if len(self.value) == 0:
-                if self.title and not self.placeholder:
-                    segments = [self.title]
-                else:
-                    segments = [self.placeholder]
-            else:
-                segments = [self._modify_text(self.value)]
-
+        segments = self._render_text()
         text = Text.assemble(*segments)
 
         if (
@@ -208,110 +228,109 @@ class TextInput(Widget):
             box=rich.box.DOUBLE if self.has_focus else rich.box.SQUARE,
         )
 
-    def _modify_text(self, segment: str) -> Union[str, Text]:
-        """Produces the text with modifications, such as password concealing."""
-        if self.has_password:
-            return conceal_text(segment)
-        if self.syntax:
-            return syntax_highlight_text(segment, self.syntax)
-        return segment
-
-    @property
-    def _visible_width(self):
-        """Width in characters of the inside of the input"""
-        # remove 2, 1 for each of the border's edges
-        # remove 1 more for the cursor
-        # remove 2 for the padding either side of the input
-        width, _ = self.size
-        if self.border:
-            width -= 2
-        if self._has_focus:
-            width -= 1
-        width -= 2
-        return width
-
-    def _text_offset_window(self):
-        """
-        Produce the start and end indices of the visible portions of the
-        text value.
-        """
-        return self._text_offset, self._text_offset + self._visible_width
-
-    def _render_text_with_cursor(self) -> List[Union[str, Text, Tuple[str, Style]]]:
-        """Produces the renderable Text object combining value and cursor"""
+    def _render_text(self) -> List[Union[str, Text, Tuple[str, Style]]]:
+        """Produces a list of renderable Text object segments,
+        This contains the text object, and optionally the cursor"""
         text = self._modify_text(self.value)
 
         # trim the string to fit within the widgets dimensions
-        left, right = self._text_offset_window()
+        # optionally subtract 1 from the right since we need to take
+        # into account the cursor
+        left, right = self._view_boundary
+        if self.has_focus:
+            right -= 1
         text = text[left:right]
 
-        # convert the cursor to be relative to this view
-        cursor_relative_position = self._cursor_position - self._text_offset
-        return [
-            text[:cursor_relative_position],
-            self.cursor,
-            text[cursor_relative_position:],
-        ]
+        # this
+        if self.has_focus:
+            # convert the cursor to be relative to this view
+            cursor_relative_position = self._cursor_position - left
+            return [
+                text[:cursor_relative_position],
+                self.cursor,
+                text[cursor_relative_position:],
+            ]
+        else:
+            return [text]
 
-    async def on_focus(self, event: events.Focus) -> None:
-        """Handle Focus events
+    @property
+    def _view_width(self):
+        """Width in characters of the inside of the input, including the cursor"""
+        # remove 2, for each of the left/right border edges
+        # remove 2, for the padding either side of the input
+        width, _ = self.size
+        if self.border:
+            width -= 2
+        width -= 2
+        return width
 
-        Args:
-            event (events.Focus): A Textual Focus event
+    @property
+    def _view_boundary(self):
         """
-        self._has_focus = True
-        await self._emit_on_focus()
+        Produce the left index and right offset of the visible portions of the
+        text value.
+        The right value is the right index +1, much like a python slice is.
+        Eg. 0 offset, 10 view width
+            -> 10th char is the right-most char, which is char[9] (0-index)
+        """
+        left = self._view_offset
+        right = self._view_offset + self._view_width
+        return left, right
 
-    async def on_blur(self, event: events.Blur) -> None:
-        """Handle Blur events
+    def _set_view_left_boundary(self, index):
+        """Set the left index of the currently visible text segment."""
+        self._view_offset = max(0, index)
 
-        Args:
-            event (events.Blur): A Textual Blur event
-        """
-        self._has_focus = False
+    def _set_view_right_boundary(self, index):
+        """Set the right index of the currently visible text segment."""
+        # because of the cursor occupying a space, we're comparing
+        # characters at +1 index, so we check against len(value), not len(value)- 1
+        # +1 to the right value to convert back to a slice
+        right = min(len(self.value), index)
+        self._set_view_left_boundary(right - self._view_width + 1)
 
-    def _update_offset_left(self):
+    def _ensure_cursor_visible(self):
         """
-        Decrease the text offset if the cursor moves less than 3 characters
-        from the left edge. This will shift the text to the right and keep
-        the cursor 3 characters from the left edge. If the text offset is 0
-        then the cursor may continue to move until it reaches the left edge.
+        Update the viewable area if the cursor moves beyond
+        or close to the edge of the currently visible text.
+        If the cursor is to the left left, the view will be adjusted such that
+        the cursor is kept 3 characters from the left edge, if possible,
+        to provide context when backspacing characters.
+        If the cursor is to the right, the view will be adjusted such that
+        the cursor is visible at the right edge of the widget.
         """
-        visibility_left = 3
-        if self._cursor_position < self._text_offset + visibility_left:
-            self._text_offset = max(0, self._cursor_position - visibility_left)
-
-    def _update_offset_right(self):
-        """
-        Increase the text offset if the cursor moves beyond the right
-        edge of the widget. This will shift the text left and make the
-        cursor visible at the right edge of the widget.
-        """
-        _, right = self._text_offset_window()
-        if self._cursor_position > right:
-            self._text_offset = self._cursor_position - self._visible_width
+        # -1 from the right to convert it to an index
+        left, right = self._view_boundary
+        right = right - 1
+        # move our window so the cursor is on screen
+        # try and make it so the cursor isn't at the edge
+        # but ensure we dont go to a negative offset
+        if self._cursor_position < left + self.edge_visibility:
+            self._set_view_left_boundary(self._cursor_position - self.edge_visibility)
+        elif self._cursor_position > right - self.edge_visibility:
+            self._set_view_right_boundary(self._cursor_position + self.edge_visibility)
 
     def _cursor_left(self):
         """Handle key press Left"""
         if self._cursor_position > 0:
             self._cursor_position -= 1
-            self._update_offset_left()
+            self._ensure_cursor_visible()
 
     def _cursor_right(self):
         """Handle key press Right"""
         if self._cursor_position < len(self.value):
             self._cursor_position = self._cursor_position + 1
-            self._update_offset_right()
+            self._ensure_cursor_visible()
 
     def _cursor_home(self):
         """Handle key press Home"""
         self._cursor_position = 0
-        self._update_offset_left()
+        self._ensure_cursor_visible()
 
     def _cursor_end(self):
         """Handle key press End"""
         self._cursor_position = len(self.value)
-        self._update_offset_right()
+        self._ensure_cursor_visible()
 
     def _key_backspace(self):
         """Handle key press Backspace"""
@@ -321,7 +340,7 @@ class TextInput(Widget):
                 + self.value[self._cursor_position :]
             )
             self._cursor_position -= 1
-            self._update_offset_left()
+            self._ensure_cursor_visible()
 
     def _key_delete(self):
         """Handle key press Delete"""
@@ -341,7 +360,7 @@ class TextInput(Widget):
 
         if not self._cursor_position > len(self.value):
             self._cursor_position += 1
-            self._update_offset_right()
+            self._ensure_cursor_visible()
 
     async def on_key(self, event: events.Key) -> None:
         """Handle key events
