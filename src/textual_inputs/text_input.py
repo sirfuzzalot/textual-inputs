@@ -387,6 +387,11 @@ class TextInput(Widget):
             self._key_printable(event)
             await self._emit_on_change(event)
 
+    def clear(self):
+        self.value = ''
+        self._cursor_position = 0
+        self._view_offset = 0
+
     async def _emit_on_change(self, event: events.Key) -> None:
         """Emit custom message class on Change events"""
         event.stop()
