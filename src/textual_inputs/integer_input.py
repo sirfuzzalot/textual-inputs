@@ -28,7 +28,7 @@ class IntegerInput(Widget):
         name (Optional[str]): The unique name of the widget. If None, the
             widget will be automatically named.
         value (Optional[int]): The starting integer value.
-        placeholder (Union[str, int, optional): Defaults to "". Text that
+        placeholder (Union[str, int], optional): Defaults to "". Text that
             appears in the widget when value is "" and the widget is not focused.
         title (str, optional): Defaults to "". A title on the top left
             of the widget's border.
@@ -195,6 +195,7 @@ class IntegerInput(Widget):
                 and cursor.
         """
         value = self._value_as_str
+        segments: List[Union[str, Tuple[str, Style]]]
 
         if len(value) == 0:
             segments = [self.cursor]
@@ -267,11 +268,13 @@ class IntegerInput(Widget):
                     self.value = int(value[:-1])
                     self._cursor_position -= 1
                 else:
-                    self.value = int(
+                    new_value = (
                         value[: self._cursor_position - 1]
                         + value[self._cursor_position :]
                     )
-                    self._cursor_position -= 1
+                    if new_value != "":
+                        self.value = int(new_value)
+                        self._cursor_position -= 1
 
             await self._emit_on_change(event)
 

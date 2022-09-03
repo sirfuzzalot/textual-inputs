@@ -10,13 +10,13 @@ from textual.message import Message
 HANDLER_SAFE = ascii_lowercase + digits + "_"
 
 
-class InputOnChange(Message, bubble=True):
+class InputOnChange(Message, bubble=True):  # type: ignore
     """Generic on change message for inputs"""
 
     _handler: str = "handle_input_on_change"
 
 
-class InputOnFocus(Message, bubble=True):
+class InputOnFocus(Message, bubble=True):  # type: ignore
     """Generic on focus message for inputs"""
 
     _handler: str = "handle_input_on_focus"
@@ -62,6 +62,6 @@ def make_message_class(handler_name: str) -> Message:
             )
     name = handler_name.lower()[7:]
     t = type(name, (Message,), {})
-    t._handler = handler_name
-    t.bubble = True
+    t._handler = handler_name  # type: ignore
+    t.bubble = True  # type: ignore
     return t
