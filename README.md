@@ -1,5 +1,6 @@
 # Textual Inputs 🔡
 
+[![Not Maintained](https://img.shields.io/badge/Maintenance%20Level-Abandoned-orange.svg)](https://gist.github.com/cheerfulstoic/d107229326a01ff0f333a1d3476e068d)
 [![Python Versions](https://shields.io/pypi/pyversions/textual-inputs)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
@@ -7,16 +8,11 @@
 
 Textual Inputs is a collection of input widgets for the [Textual](https://github.com/willmcgugan/textual) TUI framework.
 
-> ⚠️ This library is experimental and its interfaces will change. While
-> Textual Inputs is pre-alpha please pin your projects to the minor release
-> number to avoid breaking changes. For example: textual-inputs=0.2.\*
-
 ## News
 
-### v0.2.6
+### No Longer Maintained Due to Native Textual Support
 
-- Support for text overflow in TextInput
-- Patch for crash when IntegerInput is empty and backspace is pressed.
+Thanks to all the developers who contributed or used Textual Inputs. These widgets filled a gap in the early stages of Textual, which is now supported natively. Special thanks to @willmcgugan for creating this fun and functional framework -> [Textual Widget Docs](https://textual.textualize.io/widgets/)
 
 ## Quick Start
 
